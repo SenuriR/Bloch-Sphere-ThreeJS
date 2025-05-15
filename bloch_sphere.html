@@ -5,8 +5,19 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Interactive Bloch Sphere</title>
   <style>
-    body { margin: 0; overflow: hidden; background-color: #000; color: white; font-family: sans-serif; }
+    body {
+      margin: 0;
+      overflow: hidden;
+      background-color: #000;
+      color: white;
+      font-family: sans-serif;
+      position: relative;
+      height: 100vh;
+    }
     #controls {
+      z-index: 10;
+      z-index: 1;
+
       position: absolute;
       top: 10px;
       left: 10px;
@@ -30,6 +41,10 @@
 </head>
 <body>
   <div id="controls">
+    <div id="statevector" style="margin-top:10px;font-size:0.85rem">
+      <strong>State Vector:</strong>
+      <div id="psiVal">|ψ⟩ = ?</div>
+    </div>
     <label>Theta (θ): <span id="thetaVal">0</span></label>
     <input type="range" id="theta" min="0" max="3.1415" step="0.01" value="0">
 
@@ -59,7 +74,12 @@ const math = window.math;
 
     const renderer = new THREE.WebGLRenderer({ antialias: true });
     renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setPixelRatio(window.devicePixelRatio);
     document.body.appendChild(renderer.domElement);
+    renderer.domElement.style.position = 'fixed';
+    renderer.domElement.style.top = '0';
+    renderer.domElement.style.zIndex = '0';
+    renderer.domElement.style.left = '0';
 
     const controls = new OrbitControls(camera, renderer.domElement);
     controls.enableDamping = true;
@@ -108,6 +128,11 @@ const math = window.math;
         const y = (1 - (projected.y * 0.5 + 0.5)) * window.innerHeight;
         label.element.style.left = `${x}px`;
         label.element.style.top = `${y}px`;
+        label.element.style.zIndex = '10';
+        label.element.style.position = 'absolute';
+        label.element.style.transform = 'translate(-50%, -50%)';
+        label.element.style.pointerEvents = 'none';
+        label.element.style.pointerEvents = 'none';
       });
     }
 
@@ -125,6 +150,18 @@ const math = window.math;
       scene.remove(stateVector);
       stateVector = new THREE.ArrowHelper(dir, new THREE.Vector3(0, 0, 0), 1, 0xffff00, 0.15, 0.08);
       scene.add(stateVector);
+
+      // Compute and display full state vector
+      const alpha = math.complex(Math.cos(theta / 2), 0);
+      const beta = math.complex({ abs: Math.sin(theta / 2), arg: phi });
+      const pretty = (z) => {
+        const re = z.re.toFixed(2);
+        const im = z.im.toFixed(2);
+        if (Math.abs(z.im) < 1e-2) return `${re}`;
+        if (Math.abs(z.re) < 1e-2) return `${im}i`;
+        return `(${re} ${z.im < 0 ? '-' : '+'} ${Math.abs(im)}i)`;
+      };
+      document.getElementById("psiVal").innerText = `|ψ⟩ = ${pretty(alpha)} |0⟩ + ${pretty(beta)} |1⟩`;
     }
 
     function applyMatrixGate(matrix) {
