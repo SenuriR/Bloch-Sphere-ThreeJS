@@ -1,0 +1,57 @@
+body { 
+    margin: 0;
+    overflow: hidden;
+    background-color: #000;
+    font-family: sans-serif;
+    color: white;
+    position: relative;
+    height: 100vh;
+}
+
+#controls {
+    z-index: 10;
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    background: rgba(0, 0, 0, 0.6);
+    padding: 10 px;
+    border-radius: 8px;
+    pointer-events: auto;
+}
+
+label,
+input, button {
+    display: block;
+    margin: 6px 0;
+}
+
+input[type=range] {
+    width: 200px;
+}
+
+.gate-btn {
+    margin: 4px 4px;
+    padding: 4px 10px;
+    font-size: 0.9rem;
+}
+
+#qubitPanels {
+    display: flex;
+    flex-wrap: wrap;
+    position: absolute;
+    top: 100px;
+    left: 0;
+    width: 100%;
+    z-index: 10;
+    pointer-events: none;
+}
+
+.qubit-panel {
+    background: rgba(0, 0, 0, 0.6);
+    color: white;
+    padding: 10px;
+    border-radius: 8px;
+    margin: 10px;
+    width: calc(25% - 20px);
+    pointer-events: auto;
+}

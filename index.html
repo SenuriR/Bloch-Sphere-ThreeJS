@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, intial-scale=1.0" />
+    <title>Multi-Qubit Bloch Sphere Visualizer</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div id="qubitPanels"></div>
+    <div id="controls">
+        <button id="addQubitBtn">➕ Add Qubit</button>
+        <label>Theta (θ): <span id="thetaVal">0</span></label>
+        <input type="range" id="theta" min="0" max="3.1415" step="0.01" value="0">
+        <label>Phi (φ): <span id="phiVal">0</span></label>
+        <input type="range" id="phi" min="0" max="6.283" step="0.01" value="0">
+        <button id="randomizeBtn">Randomize State</button>
+        <button id="resetBtn">Rest to |0⟩</button>
+        <div>
+            <strong>Quantum Gates:</strong><br />
+            <button class="gate-btn" id="xGate">X</button>
+            <button class="gate-btn" id="yGate">Y</button>
+            <button class="gate-btn" id="zGate">Z</button>
+            <button class="gate-btn" id="hGate">H</button>
+        </div>
+        <div><span id="psiVal">|ψ⟩ = ?</span></div>
+    </div>
+      <script src="https://cdn.jsdelivr.net/npm/mathjs@11.8.0/lib/browser/math.min.js"></script>
+      <script type="module" src="main.js"></script>
+</body>
+</html>

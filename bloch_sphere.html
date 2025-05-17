@@ -39,12 +39,11 @@
     }
   </style>
 </head>
-<body>
-  <div id="controls">
-    <div id="statevector" style="margin-top:10px;font-size:0.85rem">
-      <strong>State Vector:</strong>
-      <div id="psiVal">|ψ⟩ = ?</div>
-    </div>
+<body style="display: flex; flex-wrap: wrap; align-items: flex-start;">
+  <div id="qubitPanels" style="display: flex; flex-wrap: wrap; width: 100%; z-index: 10; position: absolute; pointer-events: none; top: 0;"></div>
+
+  <div id="controls" style="z-index: 10; position: absolute; top: 10px; left: 10px; background: rgba(0, 0, 0, 0.6); padding: 10px; border-radius: 8px; pointer-events: auto;">
+    <button id="addQubitBtn">➕ Add Qubit</button>
     <label>Theta (θ): <span id="thetaVal">0</span></label>
     <input type="range" id="theta" min="0" max="3.1415" step="0.01" value="0">
 
@@ -61,10 +60,19 @@
       <button class="gate-btn" id="zGate">Z</button>
       <button class="gate-btn" id="hGate">H</button>
     </div>
+    <div><span id="psiVal">|ψ⟩ = ?</span></div>
   </div>
+    <button id="addQubitBtn">➕ Add Qubit</button>
+    <strong>Quantum Gates:</strong><br />
+    <button class="gate-btn" id="xGate">X</button>
+    <button class="gate-btn" id="yGate">Y</button>
+    <button class="gate-btn" id="zGate">Z</button>
+    <button class="gate-btn" id="hGate">H</button>
+    </div>
 
-  <script type="module">
-    import * as THREE from 'https://esm.sh/three@0.160.0';
+<script type="module">
+
+import * as THREE from 'https://esm.sh/three@0.160.0';
 import { OrbitControls } from 'https://esm.sh/three@0.160.0/examples/jsm/controls/OrbitControls';
 const math = window.math;
 
@@ -88,6 +96,7 @@ const math = window.math;
     const sphereMaterial = new THREE.MeshBasicMaterial({ color: 0x00aaff, wireframe: true });
     const blochSphere = new THREE.Mesh(sphereGeometry, sphereMaterial);
     scene.add(blochSphere);
+
 
     function createFullAxis(dir, color) {
       const lineMaterial = new THREE.LineBasicMaterial({ color });
@@ -132,37 +141,162 @@ const math = window.math;
         label.element.style.position = 'absolute';
         label.element.style.transform = 'translate(-50%, -50%)';
         label.element.style.pointerEvents = 'none';
-        label.element.style.pointerEvents = 'none';
       });
     }
 
-    let theta = 0, phi = 0;
-    let stateVector = new THREE.ArrowHelper(new THREE.Vector3(0, 0, 1), new THREE.Vector3(0, 0, 0), 1, 0xffff00, 0.15, 0.08);
-    scene.add(stateVector);
+    let qubits = [];
+let qubitIndex = 0;
+
+function addQubit(id, theta = 0, phi = 0, offsetX = 0) {
+  const x = Math.sin(theta) * Math.cos(phi);
+  const y = Math.sin(theta) * Math.sin(phi);
+  const z = Math.cos(theta);
+  const dir = new THREE.Vector3(x, y, z).normalize();
+  const vector = new THREE.ArrowHelper(dir, new THREE.Vector3(offsetX, 0, 0), 1, 0xffff00, 0.15, 0.08);
+  scene.add(vector);
+
+  // Add a Bloch sphere for this qubit
+  const sphere = new THREE.Mesh(sphereGeometry.clone(), sphereMaterial.clone());
+  sphere.position.set(offsetX, 0, 0);
+  scene.add(sphere);
+
+  // Add axes for this qubit
+  const createAxis = (dir, color) => {
+    const material = new THREE.LineBasicMaterial({ color });
+    const points = [
+      dir.clone().multiplyScalar(-1.2).add(new THREE.Vector3(offsetX, 0, 0)),
+      dir.clone().multiplyScalar(1.2).add(new THREE.Vector3(offsetX, 0, 0))
+    ];
+    const geometry = new THREE.BufferGeometry().setFromPoints(points);
+    const axis = new THREE.Line(geometry, material);
+    scene.add(axis);
+  };
+
+  createAxis(new THREE.Vector3(1, 0, 0), 0xff0000);
+  createAxis(new THREE.Vector3(0, 1, 0), 0x00ff00);
+  createAxis(new THREE.Vector3(0, 0, 1), 0x0000ff);
+  qubits.push({ id, theta, phi, vector, offsetX });
+
+  const panel = document.createElement("div");
+  panel.className = "qubit-panel";
+  panel.style.background = "rgba(0,0,0,0.6)";
+  panel.style.color = "white";
+  panel.style.padding = "10px";
+  panel.style.borderRadius = "8px";
+  panel.style.margin = "10px";
+  panel.style.width = "calc(25% - 20px)";
+  panel.style.pointerEvents = "auto";
+  panel.innerHTML = `
+    <strong>${id}</strong><br>
+    θ: <input type="range" min="0" max="3.1415" step="0.01" value="${theta}" class="theta" data-id="${id}"><br>
+    φ: <input type="range" min="0" max="6.283" step="0.01" value="${phi}" class="phi" data-id="${id}"><br>
+    <div style="margin-top: 10px;"><button class="reset-btn" data-id="${id}">Reset to |0⟩</button>
+      <button class="random-btn" data-id="${id}">Randomize</button>
+      <br><strong>Quantum Gates:</strong><br />
+      <button class="gate-btn" data-id="${id}" data-gate="X">X</button>
+      <button class="gate-btn" data-id="${id}" data-gate="Y">Y</button>
+      <button class="gate-btn" data-id="${id}" data-gate="Z">Z</button>
+      <button class="gate-btn" data-id="${id}" data-gate="H">H</button>
+    </div>
+    <span class="state-${id}">|ψ⟩ = ?</span>
+  `;
+  document.getElementById("qubitPanels").appendChild(panel);
+
+  const update = () => {
+    const qb = qubits.find(q => q.id === id);
+    qb.theta = parseFloat(panel.querySelector('.theta').value);
+    qb.phi = parseFloat(panel.querySelector('.phi').value);
+    const x = Math.sin(qb.theta) * Math.cos(qb.phi);
+    const y = Math.sin(qb.theta) * Math.sin(qb.phi);
+    const z = Math.cos(qb.theta);
+    const dir = new THREE.Vector3(x, y, z).normalize();
+    scene.remove(qb.vector);
+    qb.vector = new THREE.ArrowHelper(dir, new THREE.Vector3(qb.offsetX, 0, 0), 1, 0xffff00, 0.15, 0.08);
+    scene.add(qb.vector);
+    const alpha = math.complex(Math.cos(qb.theta / 2), 0);
+    const beta = math.complex({ abs: Math.sin(qb.theta / 2), arg: qb.phi });
+    const pretty = (z) => {
+      const re = z.re.toFixed(2);
+      const im = z.im.toFixed(2);
+      if (Math.abs(z.im) < 1e-2) return `${re}`;
+      if (Math.abs(z.re) < 1e-2) return `${im}i`;
+      return `(${re} ${z.im < 0 ? '-' : '+'} ${Math.abs(im)}i)`;
+    };
+    panel.querySelector(`.state-${id}`).innerText = `|ψ⟩ = ${pretty(alpha)} |0⟩ + ${pretty(beta)} |1⟩`;
+  };
+
+  panel.querySelector('.theta').addEventListener("input", update);
+  panel.querySelector('.phi').addEventListener("input", update);
+  panel.querySelectorAll(".gate-btn").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const gate = btn.getAttribute("data-gate");
+      const qb = qubits.find(q => q.id === id);
+      const gates = {
+        'X': [[0, 1], [1, 0]],
+        'Y': [[0, math.complex(0, -1)], [math.complex(0, 1), 0]],
+        'Z': [[1, 0], [0, -1]],
+        'H': [[1 / Math.sqrt(2), 1 / Math.sqrt(2)], [1 / Math.sqrt(2), -1 / Math.sqrt(2)]]
+      };
+      const alpha = math.complex(Math.cos(qb.theta / 2), 0);
+      const beta = math.complex({ abs: Math.sin(qb.theta / 2), arg: qb.phi });
+      
+      panel.querySelector(".reset-btn").addEventListener("click", () => {
+        panel.querySelector(".theta").value = 0;
+        panel.querySelector(".phi").value = 0;
+        update();
+
+      panel.querySelector(".random-btn").addEventListener("click", () => {
+        const t = Math.random() * Math.PI;
+        const p = Math.random() * (2 * Math.PI);
+        panel.querySelector(".theta").value = t;
+        panel.querySelector(".phi").value = p;
+        update();
+      });
+      const a = math.complex(alpha);
+      const b = math.complex(beta);
+      const matrix = gates[gate];
+      const newAlpha = math.add(math.multiply(matrix[0][0], a), math.multiply(matrix[0][1], b));
+      const newBeta = math.add(math.multiply(matrix[1][0], a), math.multiply(matrix[1][1], b));
+      const inner = math.multiply(math.conj(newAlpha), newBeta);
+      const x = 2 * math.re(inner);
+      const y = 2 * math.im(inner);
+      const z = Math.pow(math.abs(newAlpha), 2) - Math.pow(math.abs(newBeta), 2);
+      const r = Math.sqrt(x * x + y * y + z * z);
+      const newTheta = Math.acos(z / r);
+      const newPhi = Math.atan2(y, x);
+      panel.querySelector('.theta').value = newTheta;
+      panel.querySelector('.phi').value = newPhi;
+      update();
+    });
+  update();
+}
+
+// Now that addQubit is defined, initialize the first qubit
+addQubit('q0', 0, 0, 0);  
 
     function updateStateVectorFromAngles(t, p) {
-      theta = t;
-      phi = p;
-      const x = Math.sin(theta) * Math.cos(phi);
-      const y = Math.sin(theta) * Math.sin(phi);
-      const z = Math.cos(theta); // z-axis = |0⟩ at north pole
+      if (!qubits.length) return;
+      const qb = qubits[0];
+      qb.theta = t;
+      qb.phi = p;
+      const x = Math.sin(t) * Math.cos(p);
+      const y = Math.sin(t) * Math.sin(p);
+      const z = Math.cos(t);
       const dir = new THREE.Vector3(x, y, z).normalize();
-      scene.remove(stateVector);
-      stateVector = new THREE.ArrowHelper(dir, new THREE.Vector3(0, 0, 0), 1, 0xffff00, 0.15, 0.08);
-      scene.add(stateVector);
+      scene.remove(qb.vector);
+      qb.vector = new THREE.ArrowHelper(dir, new THREE.Vector3(qb.offsetX, 0, 0), 1, 0xffff00, 0.15, 0.08);
+      scene.add(qb.vector);
 
-      // Compute and display full state vector
-      const alpha = math.complex(Math.cos(theta / 2), 0);
-      const beta = math.complex({ abs: Math.sin(theta / 2), arg: phi });
+      const alpha = math.complex(Math.cos(t / 2), 0);
+      const beta = math.complex({ abs: Math.sin(t / 2), arg: p });
       const pretty = (z) => {
         const re = z.re.toFixed(2);
         const im = z.im.toFixed(2);
         if (Math.abs(z.im) < 1e-2) return `${re}`;
         if (Math.abs(z.re) < 1e-2) return `${im}i`;
         return `(${re} ${z.im < 0 ? '-' : '+'} ${Math.abs(im)}i)`;
-      };
-      document.getElementById("psiVal").innerText = `|ψ⟩ = ${pretty(alpha)} |0⟩ + ${pretty(beta)} |1⟩`;
-    }
+  };
+  document.getElementById("psiVal").innerText = `|ψ⟩ = ${pretty(alpha)} |0⟩ + ${pretty(beta)} |1⟩`;}
 
     function applyMatrixGate(matrix) {
       const alpha = math.complex(Math.cos(theta / 2), 0);
@@ -220,6 +354,11 @@ const math = window.math;
     document.getElementById("zGate").addEventListener("click", () => applyGate('Z'));
     document.getElementById("hGate").addEventListener("click", () => applyGate('H'));
     resetBtn.addEventListener("click", resetToZero);
+    document.getElementById("addQubitBtn").addEventListener("click", () => {
+      const spacing = 2;
+      const offsetX = (qubits.length) * spacing;
+      addQubit(`q${++qubitIndex}`, 0, 0, offsetX);
+    });
 
     thetaSlider.addEventListener("input", () => {
       theta = parseFloat(thetaSlider.value);
