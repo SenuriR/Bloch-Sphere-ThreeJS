@@ -9,6 +9,11 @@ const math = create(all);
 export default function QubitBlock() {
   const [theta, setTheta] = useState(0);
   const [phi, setPhi] = useState(0);
+  const [alphaInput, setAlphaInput] = useState('1');
+  const [betaInput, setBetaInput] = useState('0');
+  const [inputError, setInputError] = useState('');
+  const [gateHistory, setGateHistory] = useState([]);
+
   const mountRef = useRef();
   const arrowRef = useRef(null);
   const rendererRef = useRef(null);
@@ -27,7 +32,38 @@ export default function QubitBlock() {
     return `(${re} ${z.im < 0 ? '-' : '+'} ${Math.abs(im)}i)`;
   };
 
+  const getCircuitString = () => {
+    return `q_0: ──${gateHistory.map(g => g.toUpperCase()).join('──')}──`;
+  };
+
+  const getCircuitImageURL = () => {
+    const ascii = getCircuitString();
+    const encoded = encodeURIComponent(ascii);
+    return `https://quantum-circuit.com/render?circuit=${encoded}`;
+  };
+
   const { alpha, beta } = getStateVector(theta, phi);
+
+  const handleApplyAmplitudes = () => {
+    try {
+      const a = math.complex(alphaInput);
+      const b = math.complex(betaInput);
+      const norm = math.add(math.pow(math.abs(a), 2), math.pow(math.abs(b), 2));
+
+      if (Math.abs(norm - 1) > 0.01) {
+        setInputError("|α|² + |β|² ≠ 1 — invalid state vector");
+        return;
+      }
+
+      const newTheta = 2 * Math.acos(Math.min(1, Math.max(-1, math.abs(a))));
+      const newPhi = math.arg(b);
+      setTheta(newTheta);
+      setPhi(newPhi);
+      setInputError('');
+    } catch (err) {
+      setInputError("Invalid complex number format");
+    }
+  };
 
   useEffect(() => {
     if (!mountRef.current) return;
@@ -99,11 +135,18 @@ export default function QubitBlock() {
   const reset = () => {
     setTheta(0);
     setPhi(0);
+    setAlphaInput('1');
+    setBetaInput('0');
+    setGateHistory([]);
+    setInputError('');
   };
 
   const randomize = () => {
-    setTheta(Math.random() * Math.PI);
-    setPhi(Math.random() * 2 * Math.PI);
+    const t = Math.random() * Math.PI;
+    const p = Math.random() * 2 * Math.PI;
+    setTheta(t);
+    setPhi(p);
+    setInputError('');
   };
 
   const applyGate = (gate) => {
@@ -131,6 +174,10 @@ export default function QubitBlock() {
 
     setTheta(newTheta);
     setPhi(newPhi);
+    setAlphaInput(formatComplex(newAlpha));
+    setBetaInput(formatComplex(newBeta));
+    setGateHistory(prev => [...prev, gate]);
+    setInputError('');
   };
 
   return (
@@ -159,6 +206,17 @@ export default function QubitBlock() {
         </div>
         <div style={{ marginTop: '10px' }}>
           <strong>|ψ⟩ = {formatComplex(alpha)} |0⟩ + {formatComplex(beta)} |1⟩</strong>
+        </div>
+        <div style={{ marginTop: '10px' }}>
+          <label>α (alpha): <input type="text" value={alphaInput} onChange={(e) => setAlphaInput(e.target.value)} /></label><br />
+          <label>β (beta): <input type="text" value={betaInput} onChange={(e) => setBetaInput(e.target.value)} /></label><br />
+          <button onClick={handleApplyAmplitudes}>Apply α, β</button>
+          {inputError && <div style={{ color: 'red', marginTop: '5px' }}>{inputError}</div>}
+        </div>
+        <div style={{ marginTop: '20px' }}>
+          <strong>Gate History:</strong><br />
+          <div>{getCircuitString()}</div>
+          <img src={getCircuitImageURL()} alt="Quantum Circuit" style={{ marginTop: '10px', maxWidth: '100%' }} />
         </div>
       </div>
     </div>
