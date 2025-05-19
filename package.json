@@ -1,5 +1,6 @@
 {
   "dependencies": {
+    "katex": "^0.16.22",
     "mathjs": "^14.4.0",
     "three": "^0.176.0"
   }
