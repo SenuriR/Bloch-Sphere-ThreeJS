@@ -1,4 +1,5 @@
 // src/components/BlochSphere.jsx
+// TODO 5/19: mvp on sila
 import React, { useEffect, useRef } from 'react';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
