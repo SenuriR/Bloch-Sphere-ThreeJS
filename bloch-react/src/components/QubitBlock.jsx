@@ -13,6 +13,22 @@ export default function QubitBlock() {
   const arrowRef = useRef(null);
   const rendererRef = useRef(null);
 
+  const getStateVector = (theta, phi) => {
+    const alpha = math.complex(Math.cos(theta / 2), 0);
+    const beta = math.complex({ abs: Math.sin(theta / 2), arg: phi });
+    return { alpha, beta };
+  };
+
+  const formatComplex = (z) => {
+    const re = z.re.toFixed(2);
+    const im = z.im.toFixed(2);
+    if (Math.abs(z.im) < 1e-2) return `${re}`;
+    if (Math.abs(z.re) < 1e-2) return `${im}i`;
+    return `(${re} ${z.im < 0 ? '-' : '+'} ${Math.abs(im)}i)`;
+  };
+
+  const { alpha, beta } = getStateVector(theta, phi);
+
   useEffect(() => {
     if (!mountRef.current) return;
 
@@ -140,6 +156,9 @@ export default function QubitBlock() {
           <button onClick={() => applyGate('Y')}>Y</button>
           <button onClick={() => applyGate('Z')}>Z</button>
           <button onClick={() => applyGate('H')}>H</button>
+        </div>
+        <div style={{ marginTop: '10px' }}>
+          <strong>|ψ⟩ = {formatComplex(alpha)} |0⟩ + {formatComplex(beta)} |1⟩</strong>
         </div>
       </div>
     </div>
