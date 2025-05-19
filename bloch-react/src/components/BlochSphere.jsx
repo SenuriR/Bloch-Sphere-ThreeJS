@@ -1,13 +1,10 @@
 // src/components/BlochSphere.jsx
-// TODO 5/19: mvp on sila
 import React, { useEffect, useRef } from 'react';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
 
-export default function BlochSphere({ qubits }) {
+export default function BlochSphere({ qubit }) {
     const mountRef = useRef();
-    const sceneRef = useRef(new THREE.Scene());
-    const arrowsRef = useRef([]);
 
     useEffect(() => {
         if (!mountRef.current) return;
@@ -39,33 +36,27 @@ export default function BlochSphere({ qubits }) {
         scene.add(line);
         });
 
+        // Arrow
+        const dir = new THREE.Vector3(
+        Math.sin(qubit.theta) * Math.cos(qubit.phi),
+        Math.sin(qubit.theta) * Math.sin(qubit.phi),
+        Math.cos(qubit.theta)
+        ).normalize();
+
+        const arrow = new THREE.ArrowHelper(dir, new THREE.Vector3(0, 0, 0), 1, 0xffff00);
+        scene.add(arrow);
+
         const animate = () => {
-        requestAnimationFrame(animate);
-        controls.update();
-        renderer.render(scene, camera);
+            requestAnimationFrame(animate);
+            controls.update();
+            renderer.render(scene, camera);
         };
         animate();
 
         return () => {
-        mountRef.current?.removeChild(renderer.domElement);
+            mountRef.current?.removeChild(renderer.domElement);
         };
-    }, []);
-
-    useEffect(() => {
-        const scene = sceneRef.current;
-
-        //remove prev arrows
-        arrowsRef.current = qubits.map(q => {
-            const dir = new THREE.Vector3(
-                Math.sin(q.theta) * Math.cos(q.phi),
-                Math.sin(q.theta) * Math.sin(q.phi),
-                Math.cos(q.theta)
-            ).normalize();
-            const arrow = new THREE.ArrowHelper(dir, new THREE.Vector3(0, 0, 0), 1, 0xffff00);
-            scene.add(arrow);
-            return arrow;
-            });
-        }, [qubits]);
+    }, [qubit]);
 
     return <div ref={mountRef} style={{ width: '100%', height: '400px' }} />;
 }
