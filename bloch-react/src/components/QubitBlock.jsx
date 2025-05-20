@@ -14,6 +14,7 @@ export default function QubitBlock() {
   const [inputError, setInputError] = useState('');
   const [gateHistory, setGateHistory] = useState([]);
   const [latexLines, setLatexLines] = useState([]);
+  const [circuitAscii, setCircuitAscii] = useState('q_0: ──');
 
   const mountRef = useRef();
   const arrowRef = useRef(null);
@@ -22,8 +23,8 @@ export default function QubitBlock() {
     if (!mountRef.current) return;
 
     const scene = new THREE.Scene();
-    const camera = new THREE.PerspectiveCamera(75, mountRef.current.clientWidth / mountRef.current.clientHeight, 0.1, 1000);
-    camera.position.z = 3;
+    const camera = new THREE.PerspectiveCamera(75, 1, 0.1, 1000);
+    camera.position.z = 2;
 
     const renderer = new THREE.WebGLRenderer({ antialias: true });
     renderer.setSize(mountRef.current.clientWidth, mountRef.current.clientHeight);
@@ -79,7 +80,6 @@ export default function QubitBlock() {
     }
   }, [latexLines]);
 
-
   const formatComplex = (z) => {
     const re = z.re.toFixed(2);
     const im = z.im.toFixed(2);
@@ -89,15 +89,17 @@ export default function QubitBlock() {
   };
 
   const updateLatexText = (steps) => {
-    setLatexLines(steps.map(step => `\\[ ${step} \\]`));
+    const lines = steps.map(s => s + ' \\').join('\n');
+    const fullLines = steps.map(step => `\\[${step}\\]`);
+    setLatexLines(fullLines);
   };
-
 
   const reset = () => {
     setTheta(0);
     setPhi(0);
     setAlphaInput('1');
     setBetaInput('0');
+    setCircuitAscii('q_0: ──');
     const initial = '|\\psi_0\\rangle = \\begin{bmatrix} 1 \\ 0 \\end{bmatrix}';
     setGateHistory([initial]);
     updateLatexText([initial]);
@@ -148,6 +150,28 @@ export default function QubitBlock() {
     const newHistory = [...gateHistory, line];
     setGateHistory(newHistory);
     updateLatexText(newHistory);
+    setCircuitAscii(prev => prev.replace(/\s+$/, '') + `─${gate}─`);
+  };
+
+  const handleApplyAmplitudes = () => {
+    try {
+      const alpha = math.complex(alphaInput);
+      const beta = math.complex(betaInput);
+      const norm = Math.sqrt(Math.pow(math.abs(alpha), 2) + Math.pow(math.abs(beta), 2));
+      if (Math.abs(norm - 1) > 0.01) throw new Error("|α|² + |β|² must ≈ 1");
+
+      const inner = math.multiply(math.conj(alpha), beta);
+      const x = 2 * math.re(inner);
+      const y = 2 * math.im(inner);
+      const z = Math.pow(math.abs(alpha), 2) - Math.pow(math.abs(beta), 2);
+      const r = Math.sqrt(x * x + y * y + z * z);
+
+      setTheta(Math.acos(z / r));
+      setPhi(Math.atan2(y, x));
+      setInputError('');
+    } catch (err) {
+      setInputError(err.message);
+    }
   };
 
   useEffect(() => {
@@ -156,17 +180,28 @@ export default function QubitBlock() {
 
   return (
     <div className="qubit-block">
-      <div ref={mountRef} style={{ width: '100%', height: '300px' }} />
+      <div
+        ref={mountRef}
+        style={{ width: '100%', aspectRatio: '1 / 1', maxWidth: '600px', margin: 'auto' }}
+      />
       <div className="qubit-panel">
         <strong>Qubit</strong><br />
         θ: <input type="range" min="0" max="3.1415" step="0.01" value={theta} onChange={(e) => setTheta(parseFloat(e.target.value))} /><br />
         φ: <input type="range" min="0" max="6.283" step="0.01" value={phi} onChange={(e) => setPhi(parseFloat(e.target.value))} /><br />
-        <button onClick={reset}>Reset</button>
-        <button onClick={() => applyGate('X')}>X</button>
-        <button onClick={() => applyGate('Y')}>Y</button>
-        <button onClick={() => applyGate('Z')}>Z</button>
-        <button onClick={() => applyGate('H')}>H</button>
+        <div>
+          α: <input value={alphaInput} onChange={e => setAlphaInput(e.target.value)} style={{ width: '100px' }} />
+          β: <input value={betaInput} onChange={e => setBetaInput(e.target.value)} style={{ width: '100px' }} />
+          <button onClick={handleApplyAmplitudes}>Apply</button>
+        </div>
         {inputError && <div style={{ color: 'red' }}>{inputError}</div>}
+        <div style={{ marginTop: '10px' }}>
+          <button onClick={reset}>Reset</button>
+          <button onClick={() => applyGate('X')}>X</button>
+          <button onClick={() => applyGate('Y')}>Y</button>
+          <button onClick={() => applyGate('Z')}>Z</button>
+          <button onClick={() => applyGate('H')}>H</button>
+        </div>
+        <div style={{ marginTop: '10px', fontFamily: 'monospace', whiteSpace: 'pre' }}>{circuitAscii}</div>
         <div id="mathjax-output">
           {latexLines.map((line, i) => (
             <div key={i}>{line}</div>
