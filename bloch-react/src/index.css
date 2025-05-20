@@ -13,6 +13,12 @@
   -moz-osx-font-smoothing: grayscale;
 }
 
+#mathjax-output svg {
+  display: block;
+  margin: 0.5em 0;
+  max-width: 100%;
+}
+
 a {
   font-weight: 500;
   color: #646cff;

@@ -27,6 +27,12 @@
   flex: 1 1 200px;
 }
 
+#mathjax-output svg {
+  display: block;
+  margin: 0.5em 0;
+  max-width: 100%;
+}
+
 .logo {
   height: 6em;
   padding: 1.5em;
