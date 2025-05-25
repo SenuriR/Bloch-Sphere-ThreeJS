@@ -1,4 +1,5 @@
 // src/App.jsx
+// TODO 5/25: Will add Node.js backend
 import React, { useState } from 'react';
 import QuantumSystemPanel from './components/QuantumSystemPanel';
 import CircuitPanel from './components/CircuitPanel';
