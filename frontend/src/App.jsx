@@ -1,5 +1,5 @@
 // src/App.jsx
-// TODO 5/25: Will add Node.js backend
+// TODO 5/27: Will add Node.js backend + Fix state vector evolution
 import React, { useState } from 'react';
 import QuantumSystemPanel from './components/QuantumSystemPanel';
 import CircuitPanel from './components/CircuitPanel';
