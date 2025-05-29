@@ -1,5 +1,5 @@
 // src/App.jsx
-import React, { useState } from 'react';
+import React, { useState, useEffect} from 'react';
 import QubitPanel from './components/QubitPanel';
 import CircuitDiagram from './components/CircuitDiagram';
 import MultiQubitControls from './components/MultiQubitControls';
@@ -11,6 +11,12 @@ export default function App() {
   const [stateVectorSteps, setStateVectorSteps] = useState([]);
   const [simulationResult, setSimulationResult] = useState(null);
   const [error, setError] = useState('');
+
+  useEffect(() => {
+    if (window.MathJax) {
+      window.MathJax.typeset();
+    }
+  }, [stateVectorSteps]); // triggers rerender when new LaTeX is added
 
   const updateCircuit = (qubitIndex, gate) => {
     setCircuit(prev => [...prev, { gate, qubit: qubitIndex }]);

@@ -104,18 +104,24 @@ export default function QubitPanel({ id, qubitIndex, updateCircuit, addStateVect
     updateCircuit(qubitIndex, gate);
 
     const gateLatex = {
-      X: '\\begin{bmatrix} 0 & 1 \\ 1 & 0 \\end{bmatrix}',
-      Y: '\\begin{bmatrix} 0 & -i \\ i & 0 \\end{bmatrix}',
-      Z: '\\begin{bmatrix} 1 & 0 \\ 0 & -1 \\end{bmatrix}',
-      H: '\\frac{1}{\\sqrt{2}} \\begin{bmatrix} 1 & 1 \\ 1 & -1 \\end{bmatrix}'
+      X: '\\begin{bmatrix} 0 & 1 \\\\ 1 & 0 \\end{bmatrix}',
+      Y: '\\begin{bmatrix} 0 & -i \\\\ i & 0 \\end{bmatrix}',
+      Z: '\\begin{bmatrix} 1 & 0 \\\\ 0 & -1 \\end{bmatrix}',
+      H: '\\frac{1}{\\sqrt{2}} \\begin{bmatrix} 1 & 1 \\\\ 1 & -1 \\end{bmatrix}'
     };
+
 
     const αStr = formatComplex(alphaComplex);
     const βStr = formatComplex(betaComplex);
     const αpStr = formatComplex(newAlpha);
     const βpStr = formatComplex(newBeta);
 
-    const latexLine = `\\[|\\psi\\rangle = ${gate} |\\psi\\rangle = ${gateLatex[gate]} \\begin{bmatrix} ${αStr} \\ ${βStr} \\end{bmatrix} = \\begin{bmatrix} ${αpStr} \\ ${βpStr} \\end{bmatrix}\\]`;
+    const latexLine = `\\[
+    |\\psi\\rangle = ${gate} |\\psi\\rangle =
+    ${gateLatex[gate]} \\begin{bmatrix} ${αStr} \\\\ ${βStr} \\end{bmatrix} =
+    \\begin{bmatrix} ${αpStr} \\\\ ${βpStr} \\end{bmatrix}
+    \\]`;
+
     addStateVectorStep(latexLine);
   };
 
