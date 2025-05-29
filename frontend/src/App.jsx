@@ -1,44 +1,96 @@
 // src/App.jsx
-// TODO 5/27: Will add Node.js backend + Fix state vector evolution
 import React, { useState } from 'react';
-import QuantumSystemPanel from './components/QuantumSystemPanel';
-import CircuitPanel from './components/CircuitPanel';
-import StateVectorPanel from './components/StateVectorPanel';
+import QubitPanel from './components/QubitPanel';
+import CircuitDiagram from './components/CircuitDiagram';
+import MultiQubitControls from './components/MultiQubitControls';
+
 
 export default function App() {
-  const [qubits, setQubits] = useState([{ id: 'q0' }]);
-  const [circuit, setCircuit] = useState(['q_0: ──']);
-  const [stateVectors, setStateVectors] = useState([]);
+  const [numQubits, setNumQubits] = useState(2);
+  const [circuit, setCircuit] = useState([]);
+  const [stateVectorSteps, setStateVectorSteps] = useState([]);
+  const [simulationResult, setSimulationResult] = useState(null);
+  const [error, setError] = useState('');
 
-  const addQubit = () => {
-    if (qubits.length >= 3) return;
-    const newId = `q${qubits.length}`;
-    setQubits([...qubits, { id: newId }]);
-    setCircuit([...circuit, `q_${qubits.length}: ──`]);
-  };
-
-  const updateCircuit = (index, gate) => {
-    setCircuit(prev => {
-      const updated = [...prev];
-      updated[index] = updated[index].trimEnd() + `─${gate}─`;
-      return updated;
-    });
+  const updateCircuit = (qubitIndex, gate) => {
+    setCircuit(prev => [...prev, { gate, qubit: qubitIndex }]);
   };
 
   const addStateVectorStep = (latexLine) => {
-    setStateVectors(prev => [...prev, latexLine]);
+    setStateVectorSteps(prev => [...prev, latexLine]);
+  };
+
+  const applyMultiQubitGate = (gate, control, target) => {
+    setCircuit(prev => [...prev, { gate, control, target }]);
+  };
+
+  const runSimulation = async () => {
+    try {
+      const response = await fetch('http://localhost:3001/simulate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ circuit })
+      });
+
+      const data = await response.json();
+
+      if (data.statevector) {
+        setSimulationResult(data.statevector);
+        setError('');
+      } else if (data.error) {
+        setError(data.error);
+      }
+    } catch (err) {
+      setError('Simulation failed. Please check backend.');
+      console.error(err);
+    }
   };
 
   return (
-    <div className="app-container">
-      <button onClick={addQubit} disabled={qubits.length >= 3}>➕ Add Qubit</button>
-      <QuantumSystemPanel 
-        qubits={qubits} 
-        updateCircuit={updateCircuit} 
-        addStateVectorStep={addStateVectorStep} 
-      />
-      <CircuitPanel circuit={circuit} />
-      <StateVectorPanel latexLines={stateVectors} />
+  <div>
+    <h1>Quantum System Simulator</h1>
+
+    <div style={{ display: 'flex', gap: '10px' }}>
+      {[...Array(numQubits)].map((_, i) => (
+        <QubitPanel
+          key={i}
+          qubitIndex={i}
+          updateCircuit={updateCircuit}
+          addStateVectorStep={addStateVectorStep}
+          applyMultiQubitGate={applyMultiQubitGate}
+        />
+      ))}
     </div>
-  );
+
+    {/* 🔽 Place it here */}
+    <MultiQubitControls
+      applyMultiQubitGate={applyMultiQubitGate}
+      numQubits={numQubits}
+    />
+
+    {/* 🔽 Then the Run button */}
+    <button onClick={runSimulation} style={{ marginTop: '20px' }}>
+      Run Simulation
+    </button>
+
+    {/* Other UI */}
+    {error && <p style={{ color: 'red' }}>{error}</p>}
+
+    {simulationResult && (
+      <div>
+        <h2>Final Statevector:</h2>
+        <pre>{JSON.stringify(simulationResult, null, 2)}</pre>
+      </div>
+    )}
+
+    <CircuitDiagram circuit={circuit} />
+
+    <h2>State Vector Evolution</h2>
+    <div>
+      {stateVectorSteps.map((step, index) => (
+        <div key={index} dangerouslySetInnerHTML={{ __html: step }} />
+      ))}
+    </div>
+  </div>
+);
 }

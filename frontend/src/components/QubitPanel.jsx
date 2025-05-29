@@ -6,7 +6,7 @@ import { create, all } from 'mathjs';
 
 const math = create(all);
 
-export default function QubitPanel({ id, qubitIndex, updateCircuit, addStateVectorStep }) {
+export default function QubitPanel({ id, qubitIndex, updateCircuit, addStateVectorStep, applyMultiQubitGate }) {
   const [theta, setTheta] = useState(0);
   const [phi, setPhi] = useState(0);
   const [alpha, setAlpha] = useState('1');
@@ -68,14 +68,13 @@ export default function QubitPanel({ id, qubitIndex, updateCircuit, addStateVect
     };
   }, [theta, phi]);
 
-    const formatComplex = (z) => {
-        const re = z.re.toFixed(2);
-        const im = z.im.toFixed(2);
-        if (Math.abs(z.im) < 1e-2) return `${re}`;
-        if (Math.abs(z.re) < 1e-2) return `${im}i`;
-        return `(${re} ${z.im < 0 ? '-' : '+'} ${Math.abs(im)}i)`;
-    };
-
+  const formatComplex = (z) => {
+    const re = z.re.toFixed(2);
+    const im = z.im.toFixed(2);
+    if (Math.abs(im) < 1e-2) return `${re}`;
+    if (Math.abs(re) < 1e-2) return `${im}i`;
+    return `${re}${im < 0 ? ' - ' : ' + '}${Math.abs(im)}i`;
+  };
 
   const applyGate = (gate) => {
     const alphaComplex = math.complex(Math.cos(theta / 2), 0);
@@ -103,20 +102,12 @@ export default function QubitPanel({ id, qubitIndex, updateCircuit, addStateVect
     setBeta(newBeta.toString());
 
     updateCircuit(qubitIndex, gate);
-    
-    const gateLatex = {
-    X: '\\begin{bmatrix} 0 & 1 \\\\ 1 & 0 \\end{bmatrix}',
-    Y: '\\begin{bmatrix} 0 & -i \\\\ i & 0 \\end{bmatrix}',
-    Z: '\\begin{bmatrix} 1 & 0 \\\\ 0 & -1 \\end{bmatrix}',
-    H: '\\frac{1}{\\sqrt{2}} \\begin{bmatrix} 1 & 1 \\\\ 1 & -1 \\end{bmatrix}'
-    };
 
-    const formatComplex = (z) => {
-    const re = math.re(z).toFixed(2);
-    const im = math.im(z).toFixed(2);
-    if (Math.abs(im) < 1e-2) return `${re}`;
-    if (Math.abs(re) < 1e-2) return `${im}i`;
-    return `${re}${im < 0 ? ' - ' : ' + '}${Math.abs(im)}i`;
+    const gateLatex = {
+      X: '\\begin{bmatrix} 0 & 1 \\ 1 & 0 \\end{bmatrix}',
+      Y: '\\begin{bmatrix} 0 & -i \\ i & 0 \\end{bmatrix}',
+      Z: '\\begin{bmatrix} 1 & 0 \\ 0 & -1 \\end{bmatrix}',
+      H: '\\frac{1}{\\sqrt{2}} \\begin{bmatrix} 1 & 1 \\ 1 & -1 \\end{bmatrix}'
     };
 
     const αStr = formatComplex(alphaComplex);
@@ -124,11 +115,8 @@ export default function QubitPanel({ id, qubitIndex, updateCircuit, addStateVect
     const αpStr = formatComplex(newAlpha);
     const βpStr = formatComplex(newBeta);
 
-    const latexLine = `\\[|\\psi\\rangle = ${gate} |\\psi\\rangle = ${gateLatex[gate]} \\begin{bmatrix} ${αStr} \\\\ ${βStr} \\end{bmatrix} = \\begin{bmatrix} ${αpStr} \\\\ ${βpStr} \\end{bmatrix}\\]`;
-
+    const latexLine = `\\[|\\psi\\rangle = ${gate} |\\psi\\rangle = ${gateLatex[gate]} \\begin{bmatrix} ${αStr} \\ ${βStr} \\end{bmatrix} = \\begin{bmatrix} ${αpStr} \\ ${βpStr} \\end{bmatrix}\\]`;
     addStateVectorStep(latexLine);
-
-
   };
 
   return (

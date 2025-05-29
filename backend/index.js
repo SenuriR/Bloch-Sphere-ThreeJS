@@ -1,3 +1,4 @@
+// backend/index.js
 import express from 'express';
 import cors from 'cors';
 import { spawn } from 'child_process';
@@ -11,34 +12,52 @@ const PORT = 3001;
 app.use(cors());
 app.use(express.json());
 
-app.get('/ping', (req, res) => {
-  res.json({ message: 'pong' });
-});
-
 app.post('/simulate', (req, res) => {
-  const { circuit } = req.body;
-  const python = spawn('python3', [path.join(__dirname, 'quantum/qiskit_runner.py')]);
+  const circuit = req.body.circuit || [];
+  const py = spawn('python3', [path.join(__dirname, 'quantum', 'pennylane_runner.py')]);
+  let result = '';
+  let error = '';
 
-  python.stdin.write(JSON.stringify({ circuit }));
-  python.stdin.end();
+  py.stdout.on('data', data => result += data);
+  py.stderr.on('data', data => error += data);
 
-  let data = '';
-  python.stdout.on('data', (chunk) => {
-    data += chunk.toString();
-  });
-
-  python.stderr.on('data', (err) => {
-    console.error('Python error:', err.toString());
-  });
-
-  python.on('close', (code) => {
+  py.on('close', () => {
     try {
-      const parsed = JSON.parse(data);
+      const parsed = JSON.parse(result);
       res.json(parsed);
-    } catch (e) {
+    } catch (err) {
+      console.error('JSON parse error:', err);
+      console.error('Python stderr:', error);
       res.status(500).json({ error: 'Failed to parse simulation output.' });
     }
   });
+
+  py.stdin.write(JSON.stringify({ circuit }));
+  py.stdin.end();
+});
+
+app.post('/circuit-diagram', (req, res) => {
+  const circuit = req.body.circuit || [];
+  const py = spawn('python3', [path.join(__dirname, 'quantum', 'circuit_diagram.py')]);
+  let result = '';
+  let error = '';
+
+  py.stdout.on('data', data => result += data);
+  py.stderr.on('data', data => error += data);
+
+  py.on('close', () => {
+    try {
+      const parsed = JSON.parse(result);
+      res.json(parsed);
+    } catch (err) {
+      console.error('JSON parse error:', err);
+      console.error('Python stderr:', error);
+      res.status(500).json({ error: 'Failed to parse diagram output.' });
+    }
+  });
+
+  py.stdin.write(JSON.stringify({ circuit }));
+  py.stdin.end();
 });
 
 app.listen(PORT, () => {
