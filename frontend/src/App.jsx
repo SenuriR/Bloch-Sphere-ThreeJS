@@ -1,22 +1,20 @@
 // src/App.jsx
-import React, { useState, useEffect} from 'react';
-import QubitPanel from './components/QubitPanel';
-import CircuitDiagram from './components/CircuitDiagram';
-import MultiQubitControls from './components/MultiQubitControls';
 
+import React, { useState, useEffect } from 'react';
+import QubitPanel from './components/QubitPanel';
+import MultiQubitControls from './components/MultiQubitControls';
+import CircuitDiagram from './components/CircuitDiagram';
 
 export default function App() {
-  const [numQubits, setNumQubits] = useState(2);
+  const [numQubits, setNumQubits] = useState(1);  // Start with 1 qubit
   const [circuit, setCircuit] = useState([]);
   const [stateVectorSteps, setStateVectorSteps] = useState([]);
   const [simulationResult, setSimulationResult] = useState(null);
   const [error, setError] = useState('');
 
-  useEffect(() => {
-    if (window.MathJax) {
-      window.MathJax.typeset();
-    }
-  }, [stateVectorSteps]); // triggers rerender when new LaTeX is added
+  const addQubit = () => {
+    setNumQubits(prev => prev + 1);
+  };
 
   const updateCircuit = (qubitIndex, gate) => {
     setCircuit(prev => [...prev, { gate, qubit: qubitIndex }]);
@@ -52,51 +50,54 @@ export default function App() {
     }
   };
 
+  // Handle MathJax rerender on state vector update
+  useEffect(() => {
+    if (window.MathJax) {
+      window.MathJax.typeset();
+    }
+  }, [stateVectorSteps]);
+
   return (
-  <div>
-    <h1>Quantum System Simulator</h1>
-
-    <div style={{ display: 'flex', gap: '10px' }}>
-      {[...Array(numQubits)].map((_, i) => (
-        <QubitPanel
-          key={i}
-          qubitIndex={i}
-          updateCircuit={updateCircuit}
-          addStateVectorStep={addStateVectorStep}
-          applyMultiQubitGate={applyMultiQubitGate}
-        />
-      ))}
-    </div>
-
-    {/* 🔽 Place it here */}
-    <MultiQubitControls
-      applyMultiQubitGate={applyMultiQubitGate}
-      numQubits={numQubits}
-    />
-
-    {/* 🔽 Then the Run button */}
-    <button onClick={runSimulation} style={{ marginTop: '20px' }}>
-      Run Simulation
-    </button>
-
-    {/* Other UI */}
-    {error && <p style={{ color: 'red' }}>{error}</p>}
-
-    {simulationResult && (
-      <div>
-        <h2>Final Statevector:</h2>
-        <pre>{JSON.stringify(simulationResult, null, 2)}</pre>
-      </div>
-    )}
-
-    <CircuitDiagram circuit={circuit} />
-
-    <h2>State Vector Evolution</h2>
     <div>
-      {stateVectorSteps.map((step, index) => (
-        <div key={index} dangerouslySetInnerHTML={{ __html: step }} />
-      ))}
+      <h1>Quantum System Simulator</h1>
+
+      <button onClick={addQubit}>➕ Add Qubit</button>
+
+      <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+        {[...Array(numQubits)].map((_, i) => (
+          <QubitPanel
+            key={i}
+            qubitIndex={i}
+            updateCircuit={updateCircuit}
+            addStateVectorStep={addStateVectorStep}
+            applyMultiQubitGate={applyMultiQubitGate}
+          />
+        ))}
+      </div>
+
+      <MultiQubitControls applyMultiQubitGate={applyMultiQubitGate} numQubits={numQubits} />
+
+      <button onClick={runSimulation} style={{ marginTop: '20px' }}>
+        Run Simulation
+      </button>
+
+      {error && <p style={{ color: 'red' }}>{error}</p>}
+
+      {simulationResult && (
+        <div>
+          <h2>Final Statevector:</h2>
+          <pre>{JSON.stringify(simulationResult, null, 2)}</pre>
+        </div>
+      )}
+
+      <CircuitDiagram circuit={circuit} />
+
+      <h2>State Vector Evolution</h2>
+      <div>
+        {stateVectorSteps.map((step, index) => (
+          <div key={index} dangerouslySetInnerHTML={{ __html: step }} />
+        ))}
+      </div>
     </div>
-  </div>
-);
+  );
 }
