@@ -1,9 +1,8 @@
-// src/App.jsx
-
 import React, { useState, useEffect } from 'react';
 import QubitPanel from './components/QubitPanel';
 import MultiQubitControls from './components/MultiQubitControls';
 import CircuitDiagram from './components/CircuitDiagram';
+
 
 export default function App() {
   const [numQubits, setNumQubits] = useState(1);  // Start with 1 qubit
@@ -11,6 +10,25 @@ export default function App() {
   const [stateVectorSteps, setStateVectorSteps] = useState([]);
   const [simulationResult, setSimulationResult] = useState(null);
   const [error, setError] = useState('');
+
+const fetchStateEvolution = async (circuit) => {
+    try {
+      const response = await fetch('http://localhost:3001/state-evolution', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ circuit })
+      });
+
+      const data = await response.json();
+      if (data.latex_steps) {
+        setStateVectorSteps(data.latex_steps);
+      } else {
+        console.error("No latex steps returned");
+      }
+    } catch (err) {
+      console.error('Error fetching state evolution:', err);
+    }
+  };
 
   const addQubit = () => {
     setNumQubits(prev => prev + 1);
@@ -50,7 +68,12 @@ export default function App() {
     }
   };
 
-  // Handle MathJax rerender on state vector update
+  useEffect(() => {
+    if (circuit.length > 0) {
+      fetchStateEvolution(circuit);
+    }
+  }, [circuit]);
+
   useEffect(() => {
     if (window.MathJax) {
       window.MathJax.typeset();

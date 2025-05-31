@@ -60,6 +60,30 @@ app.post('/circuit-diagram', (req, res) => {
   py.stdin.end();
 });
 
+app.post('/state-evolution', (req, res) => {
+  const circuit = req.body.circuit || [];
+  const py = spawn('python3', [path.join(__dirname, 'quantum', 'statevector_evolution.py')]);
+
+  let result = '', error = '';
+  py.stdout.on('data', data => result += data);
+  py.stderr.on('data', data => error += data);
+
+  py.on('close', () => {
+    try {
+      const parsed = JSON.parse(result);
+      res.json(parsed);
+    } catch (err) {
+      console.error('JSON parse error:', err);
+      console.error('Python stderr:', error);
+      res.status(500).json({ error: 'Failed to parse state evolution output.' });
+    }
+  });
+
+  py.stdin.write(JSON.stringify({ circuit }));
+  py.stdin.end();
+});
+
+
 app.listen(PORT, () => {
   console.log(`🚀 Backend running on http://localhost:${PORT}`);
 });
