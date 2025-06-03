@@ -48,25 +48,31 @@ const fetchStateEvolution = async (circuit) => {
 
   const runSimulation = async () => {
     try {
-      const response = await fetch('http://localhost:3001/simulate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ circuit })
-      });
+      const [simResponse, evolutionResponse] = await Promise.all([
+        fetch('http://localhost:3001/simulate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ circuit })
+        }),
+        fetch('http://localhost:3001/state-evolution', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ circuit })
+        })
+      ]);
 
-      const data = await response.json();
+      const simData = await simResponse.json();
+      const evolutionData = await evolutionResponse.json();
 
-      if (data.statevector) {
-        setSimulationResult(data.statevector);
-        setError('');
-      } else if (data.error) {
-        setError(data.error);
-      }
+      if (simData.statevector) setSimulationResult(simData.statevector);
+      if (evolutionData.latex) setStateVectorSteps(evolutionData.latex);
+
     } catch (err) {
-      setError('Simulation failed. Please check backend.');
       console.error(err);
+      setError('Simulation failed.');
     }
   };
+
 
   useEffect(() => {
     if (circuit.length > 0) {
