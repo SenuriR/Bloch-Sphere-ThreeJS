@@ -3,15 +3,20 @@ import QubitPanel from './components/QubitPanel';
 import MultiQubitControls from './components/MultiQubitControls';
 import CircuitDiagram from './components/CircuitDiagram';
 
-
 export default function App() {
-  const [numQubits, setNumQubits] = useState(1);  // Start with 1 qubit
+  const [numQubits, setNumQubits] = useState(2);
   const [circuit, setCircuit] = useState([]);
-  const [stateVectorSteps, setStateVectorSteps] = useState([]);
-  const [simulationResult, setSimulationResult] = useState(null);
-  const [error, setError] = useState('');
+  const [latexSteps, setLatexSteps] = useState([]);
 
-const fetchStateEvolution = async (circuit) => {
+  const updateCircuit = (qubitIndex, gate) => {
+    setCircuit(prev => [...prev, { gate, qubit: qubitIndex }]);
+  };
+
+  const applyMultiQubitGate = (gate, control, target) => {
+    setCircuit(prev => [...prev, { gate, control, target }]);
+  };
+
+  const runStateEvolution = async () => {
     try {
       const response = await fetch('http://localhost:3001/state-evolution', {
         method: 'POST',
@@ -20,85 +25,32 @@ const fetchStateEvolution = async (circuit) => {
       });
 
       const data = await response.json();
-      if (data.latex_steps) {
-        setStateVectorSteps(data.latex_steps);
-      } else {
-        console.error("No latex steps returned");
+      if (data.steps) {
+        setLatexSteps(data.steps);
       }
     } catch (err) {
-      console.error('Error fetching state evolution:', err);
+      console.error('State evolution request failed:', err);
     }
   };
-
-  const addQubit = () => {
-    setNumQubits(prev => prev + 1);
-  };
-
-  const updateCircuit = (qubitIndex, gate) => {
-    setCircuit(prev => [...prev, { gate, qubit: qubitIndex }]);
-  };
-
-  const addStateVectorStep = (latexLine) => {
-    setStateVectorSteps(prev => [...prev, latexLine]);
-  };
-
-  const applyMultiQubitGate = (gate, control, target) => {
-    setCircuit(prev => [...prev, { gate, control, target }]);
-  };
-
-  const runSimulation = async () => {
-    try {
-      const [simResponse, evolutionResponse] = await Promise.all([
-        fetch('http://localhost:3001/simulate', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ circuit })
-        }),
-        fetch('http://localhost:3001/state-evolution', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ circuit })
-        })
-      ]);
-
-      const simData = await simResponse.json();
-      const evolutionData = await evolutionResponse.json();
-
-      if (simData.statevector) setSimulationResult(simData.statevector);
-      if (evolutionData.latex) setStateVectorSteps(evolutionData.latex);
-
-    } catch (err) {
-      console.error(err);
-      setError('Simulation failed.');
-    }
-  };
-
-
-  useEffect(() => {
-    if (circuit.length > 0) {
-      fetchStateEvolution(circuit);
-    }
-  }, [circuit]);
 
   useEffect(() => {
     if (window.MathJax) {
       window.MathJax.typeset();
     }
-  }, [stateVectorSteps]);
+  }, [latexSteps]);
 
   return (
     <div>
       <h1>Quantum System Simulator</h1>
 
-      <button onClick={addQubit}>➕ Add Qubit</button>
+      <button onClick={() => setNumQubits(numQubits + 1)}>➕ Add Qubit</button>
 
-      <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+      <div style={{ display: 'flex', gap: '10px' }}>
         {[...Array(numQubits)].map((_, i) => (
           <QubitPanel
             key={i}
             qubitIndex={i}
             updateCircuit={updateCircuit}
-            addStateVectorStep={addStateVectorStep}
             applyMultiQubitGate={applyMultiQubitGate}
           />
         ))}
@@ -106,25 +58,20 @@ const fetchStateEvolution = async (circuit) => {
 
       <MultiQubitControls applyMultiQubitGate={applyMultiQubitGate} numQubits={numQubits} />
 
-      <button onClick={runSimulation} style={{ marginTop: '20px' }}>
-        Run Simulation
+      <button onClick={runStateEvolution} style={{ marginTop: '20px' }}>
+        Run State Evolution
       </button>
 
-      {error && <p style={{ color: 'red' }}>{error}</p>}
-
-      {simulationResult && (
-        <div>
-          <h2>Final Statevector:</h2>
-          <pre>{JSON.stringify(simulationResult, null, 2)}</pre>
-        </div>
-      )}
-
+      <h2>Quantum Circuit</h2>
       <CircuitDiagram circuit={circuit} />
 
       <h2>State Vector Evolution</h2>
       <div>
-        {stateVectorSteps.map((step, index) => (
-          <div key={index} dangerouslySetInnerHTML={{ __html: step }} />
+        {latexSteps.map((line, idx) => (
+          <div key={idx}>
+            <div dangerouslySetInnerHTML={{ __html: `\\(${line}\\)` }} />
+            <br />
+          </div>
         ))}
       </div>
     </div>

@@ -30,7 +30,6 @@ export default function CircuitDiagram({ circuit }) {
 
   return (
     <div>
-      <h2>Quantum Circuit</h2>
       {error && <p style={{ color: 'red' }}>{error}</p>}
       <pre>{diagram}</pre>
     </div>
