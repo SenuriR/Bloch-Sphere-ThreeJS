@@ -29,9 +29,9 @@ export default function CircuitDiagram({ circuit }) {
   }, [circuit]);
 
   return (
-    <div>
+    <div style={{ whiteSpace: 'pre', fontFamily: 'monospace' }}>
       {error && <p style={{ color: 'red' }}>{error}</p>}
-      <pre>{diagram}</pre>
+      {diagram}
     </div>
   );
 }
