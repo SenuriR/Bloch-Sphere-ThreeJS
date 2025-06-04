@@ -3,6 +3,7 @@ import QubitPanel from './components/QubitPanel';
 import MultiQubitControls from './components/MultiQubitControls';
 import CircuitDiagram from './components/CircuitDiagram';
 import ProtocolPanel from './components/ProtocolPanel';
+import './styles.css';
 
 export default function App() {
   const [numQubits, setNumQubits] = useState(2);
@@ -42,40 +43,45 @@ export default function App() {
 
   return (
     <div>
-      <h1>Quantum System Simulator</h1>
+      <h1>Quantum Research Control Console</h1>
 
-      <button onClick={() => setNumQubits(numQubits + 1)}>➕ Add Qubit</button>
+      <div className="container">
+        {/* Qubit Controls Panel */}
+        <div className="panel">
+          <h2>Qubit Controls</h2>
+          <button onClick={() => setNumQubits(numQubits + 1)}>➕ Add Qubit</button>
 
-      <div style={{ display: 'flex', gap: '10px' }}>
-        {[...Array(numQubits)].map((_, i) => (
-          <QubitPanel
-            key={i}
-            qubitIndex={i}
-            updateCircuit={updateCircuit}
-            applyMultiQubitGate={applyMultiQubitGate}
-          />
-        ))}
-      </div>
+          {[...Array(numQubits)].map((_, i) => (
+            <QubitPanel
+              key={i}
+              qubitIndex={i}
+              updateCircuit={updateCircuit}
+              applyMultiQubitGate={applyMultiQubitGate}
+            />
+          ))}
 
-      <MultiQubitControls applyMultiQubitGate={applyMultiQubitGate} numQubits={numQubits} />
+          <MultiQubitControls applyMultiQubitGate={applyMultiQubitGate} numQubits={numQubits} />
 
-      <button onClick={runStateEvolution} style={{ marginTop: '20px' }}>
-        Run State Evolution
-      </button>
+          <button onClick={runStateEvolution}>🧮 Run State Evolution</button>
+        </div>
 
-      <ProtocolPanel circuit={circuit} />
+        {/* Protocol Panel */}
+        <div className="panel">
+          <ProtocolPanel circuit={circuit} />
+        </div>
 
-      <h2>Quantum Circuit</h2>
-      <CircuitDiagram circuit={circuit} />
+        {/* Quantum Circuit & State Evolution */}
+        <div className="panel">
+          <h2>Quantum Circuit</h2>
+          <CircuitDiagram circuit={circuit} />
 
-      <h2>State Vector Evolution</h2>
-      <div>
-        {latexSteps.map((line, idx) => (
-          <div key={idx}>
-            <div dangerouslySetInnerHTML={{ __html: `\\(${line}\\)` }} />
-            <br />
-          </div>
-        ))}
+          <h2>State Evolution</h2>
+          {latexSteps.map((line, idx) => (
+            <div key={idx}>
+              <div dangerouslySetInnerHTML={{ __html: `\\(${line}\\)` }} />
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   );

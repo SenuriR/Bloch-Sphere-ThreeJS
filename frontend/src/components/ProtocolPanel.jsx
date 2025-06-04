@@ -14,7 +14,6 @@ export default function ProtocolPanel({ circuit }) {
 
   return (
     <div>
-      <h2>Protocol Panel</h2>
       <ul style={{ listStyleType: 'none', padding: 0 }}>
         {circuit.map((op, idx) => {
           let description = "";
