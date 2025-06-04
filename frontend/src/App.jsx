@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import QubitPanel from './components/QubitPanel';
 import MultiQubitControls from './components/MultiQubitControls';
 import CircuitDiagram from './components/CircuitDiagram';
+import ProtocolPanel from './components/ProtocolPanel';
 
 export default function App() {
   const [numQubits, setNumQubits] = useState(2);
@@ -61,6 +62,8 @@ export default function App() {
       <button onClick={runStateEvolution} style={{ marginTop: '20px' }}>
         Run State Evolution
       </button>
+
+      <ProtocolPanel circuit={circuit} />
 
       <h2>Quantum Circuit</h2>
       <CircuitDiagram circuit={circuit} />
