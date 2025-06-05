@@ -42,7 +42,7 @@ export default function App() {
   }, [latexSteps]);
 
   return (
-    <div className="app-wraper">
+    <div className="app-wrapper">
       <h1>Quantum Research Control Console</h1>
 
       <div className="container">

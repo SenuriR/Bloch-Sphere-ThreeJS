@@ -40,10 +40,12 @@ h2 {
 }
 
 .app-wrapper {
-  max-width: 1200px;
-  margin: 80px auto;
+  max-width: 1600px;
+  margin: 40px auto;
   padding: 40px;
   box-sizing: border-box;
+  transform: scale(0.85);
+  transform-origin: top center;
 }
 
 
