@@ -42,7 +42,7 @@ export default function App() {
   }, [latexSteps]);
 
   return (
-    <div>
+    <div className="app-wraper">
       <h1>Quantum Research Control Console</h1>
 
       <div className="container">
@@ -61,8 +61,6 @@ export default function App() {
           ))}
 
           <MultiQubitControls applyMultiQubitGate={applyMultiQubitGate} numQubits={numQubits} />
-
-          <button onClick={runStateEvolution}>🧮 Run State Evolution</button>
         </div>
 
         {/* Protocol Panel */}
@@ -76,6 +74,7 @@ export default function App() {
           <CircuitDiagram circuit={circuit} />
 
           <h2>State Evolution</h2>
+          <button onClick={runStateEvolution}>🧮 Run State Evolution</button>
           {latexSteps.map((line, idx) => (
             <div key={idx}>
               <div dangerouslySetInnerHTML={{ __html: `\\(${line}\\)` }} />
