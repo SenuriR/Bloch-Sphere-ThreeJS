@@ -66,12 +66,16 @@ export default function QubitPanel({ qubitIndex, updateCircuit }) {
   return (
     <div className="qubit-panel" style={{ maxWidth: '320px' }}>
       <div ref={mountRef} />
-      <label>
-        θ: <input type="range" min="0" max={Math.PI} step="0.01" value={theta} onChange={e => setTheta(parseFloat(e.target.value))} />
-      </label>
-      <label>
-        φ: <input type="range" min="0" max={2 * Math.PI} step="0.01" value={phi} onChange={e => setPhi(parseFloat(e.target.value))} />
-      </label>
+      <div style={{ display: 'flex', alignItems: 'center', margin: '5px 0' }}>
+        <span style={{ width: '20px', textAlign: 'right', marginRight: '8px' }}>θ:</span>
+        <input type="range" min="0" max={Math.PI} step="0.01" value={theta} onChange={e => setTheta(parseFloat(e.target.value))} style={{ flex: 1 }} />
+      </div>
+
+      <div style={{ display: 'flex', alignItems: 'center', margin: '5px 0' }}>
+        <span style={{ width: '20px', textAlign: 'right', marginRight: '8px' }}>φ:</span>
+        <input type="range" min="0" max={2 * Math.PI} step="0.01" value={phi} onChange={e => setPhi(parseFloat(e.target.value))} style={{ flex: 1 }} />
+      </div>
+
       <div>
         <button onClick={() => updateCircuit(qubitIndex, 'X')}>X</button>
         <button onClick={() => updateCircuit(qubitIndex, 'Y')}>Y</button>
