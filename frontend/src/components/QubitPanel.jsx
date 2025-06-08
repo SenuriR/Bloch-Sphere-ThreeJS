@@ -1,17 +1,18 @@
-// src/components/QubitPanel.jsx
-import React, { useRef, useEffect, useState } from 'react';
+import React, { useRef, useEffect, useLayoutEffect } from 'react';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
 
-export default function QubitPanel({ qubitIndex, updateCircuit }) {
+export default function QubitPanel({ qubitIndex, blochData, updateCircuit }) {
   const mountRef = useRef();
   const arrowRef = useRef();
+  const sphereRef = useRef();
+  const sceneRef = useRef();
 
-  const [theta, setTheta] = useState(0);
-  const [phi, setPhi] = useState(0);
-
-  useEffect(() => {
+  // Initialize Three.js scene
+  useLayoutEffect(() => {
     const scene = new THREE.Scene();
+    sceneRef.current = scene;
+
     const camera = new THREE.PerspectiveCamera(75, 1, 0.1, 1000);
     camera.position.z = 2;
 
@@ -26,6 +27,7 @@ export default function QubitPanel({ qubitIndex, updateCircuit }) {
       new THREE.SphereGeometry(1, 64, 64),
       new THREE.MeshBasicMaterial({ color: 0x00aaff, wireframe: true })
     );
+    sphereRef.current = sphere;
     scene.add(sphere);
 
     const axes = [new THREE.Vector3(1, 0, 0), new THREE.Vector3(0, 1, 0), new THREE.Vector3(0, 0, 1)];
@@ -47,12 +49,6 @@ export default function QubitPanel({ qubitIndex, updateCircuit }) {
 
     const animate = () => {
       requestAnimationFrame(animate);
-      const dir = new THREE.Vector3(
-        Math.sin(theta) * Math.cos(phi),
-        Math.sin(theta) * Math.sin(phi),
-        Math.cos(theta)
-      ).normalize();
-      arrow.setDirection(dir);
       controls.update();
       renderer.render(scene, camera);
     };
@@ -61,26 +57,47 @@ export default function QubitPanel({ qubitIndex, updateCircuit }) {
     return () => {
       mountRef.current?.removeChild(renderer.domElement);
     };
-  }, [theta, phi]);
+  }, []);
+
+  // This fires AFTER Three.js objects exist
+  useEffect(() => {
+    if (!blochData || !sphereRef.current || !arrowRef.current) return;
+
+    const { bloch_vector, purity } = blochData;
+
+    const radius = purity;
+    sphereRef.current.scale.set(radius, radius, radius);
+
+    // Change sphere color based on purity
+    const newColor = (purity >= 0.99) ? 0x00aaff : 0xffcc00;  // blue for pure, yellow for mixed
+    sphereRef.current.material.color.setHex(newColor);
+
+    if (purity < 0.55) {
+      arrowRef.current.visible = false;
+    } else {
+      arrowRef.current.visible = true;
+      const dir = new THREE.Vector3(
+        bloch_vector[0],
+        bloch_vector[1],
+        bloch_vector[2]
+      ).normalize();
+      arrowRef.current.setDirection(dir);
+      arrowRef.current.setLength(radius);
+    }
+  }, [blochData]);
+
 
   return (
     <div className="qubit-panel" style={{ maxWidth: '320px' }}>
       <div ref={mountRef} />
-      <div style={{ display: 'flex', alignItems: 'center', margin: '5px 0' }}>
-        <span style={{ width: '20px', textAlign: 'right', marginRight: '8px' }}>θ:</span>
-        <input type="range" min="0" max={Math.PI} step="0.01" value={theta} onChange={e => setTheta(parseFloat(e.target.value))} style={{ flex: 1 }} />
-      </div>
 
-      <div style={{ display: 'flex', alignItems: 'center', margin: '5px 0' }}>
-        <span style={{ width: '20px', textAlign: 'right', marginRight: '8px' }}>φ:</span>
-        <input type="range" min="0" max={2 * Math.PI} step="0.01" value={phi} onChange={e => setPhi(parseFloat(e.target.value))} style={{ flex: 1 }} />
-      </div>
-
-      <div>
+      <div style={{ marginTop: '10px' }}>
         <button onClick={() => updateCircuit(qubitIndex, 'X')}>X</button>
         <button onClick={() => updateCircuit(qubitIndex, 'Y')}>Y</button>
         <button onClick={() => updateCircuit(qubitIndex, 'Z')}>Z</button>
         <button onClick={() => updateCircuit(qubitIndex, 'H')}>H</button>
+        <button onClick={() => updateCircuit(qubitIndex, 'S')}>S</button>
+        <button onClick={() => updateCircuit(qubitIndex, 'T')}>T</button>
       </div>
     </div>
   );
