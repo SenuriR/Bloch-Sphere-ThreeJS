@@ -20,7 +20,7 @@ n_qubits = max_wire + 1
 # Initialize PennyLane device
 dev = qml.device("default.qubit", wires=n_qubits)
 
-# Dictionary for LaTeX matrices
+# Dictionary for LaTeX gate matrices
 gate_matrices = {
     "X": r"\begin{bmatrix} 0 & 1 \\ 1 & 0 \end{bmatrix}",
     "Y": r"\begin{bmatrix} 0 & -i \\ i & 0 \end{bmatrix}",
@@ -31,7 +31,7 @@ gate_matrices = {
     "CNOT": r"\begin{bmatrix} 1 & 0 & 0 & 0 \\ 0 & 1 & 0 & 0 \\ 0 & 0 & 0 & 1 \\ 0 & 0 & 1 & 0 \end{bmatrix}"
 }
 
-# Helper for complex numbers → LaTeX formatting
+# Helper for formatting complex numbers for LaTeX
 def format_complex(z):
     re = np.round(z.real, 2)
     im = np.round(z.imag, 2)
@@ -42,6 +42,16 @@ def format_complex(z):
     else:
         sign = '+' if im >= 0 else '-'
         return f"{re:.2f}{sign}{np.abs(im):.2f}i"
+
+# Build simplified braket notation string
+def statevector_to_braket(state):
+    terms = []
+    for i, amp in enumerate(state):
+        if np.abs(amp) > 1e-3:  # skip very small amplitudes
+            formatted_amp = format_complex(amp)
+            ket = f"|{format(i, f'0{n_qubits}b')}\\rangle"
+            terms.append(f"{formatted_amp}{ket}")
+    return " + ".join(terms) if terms else "0"
 
 # Build full circuit function
 @qml.qnode(dev)
@@ -63,10 +73,10 @@ def full_circuit():
             qml.CNOT(wires=[op["control"], op["target"]])
     return qml.state()
 
-# Run full circuit
+# Run full circuit to get final statevector
 state = full_circuit()
 
-# Build LaTeX step-by-step evolution:
+# Generate step-by-step LaTeX evolution
 latex_steps = []
 partial_ops = []
 
@@ -93,16 +103,22 @@ for idx, op in enumerate(circuit_description):
         return qml.state()
 
     partial_state = partial_circuit()
+
+    # Format statevector as matrix form for LaTeX
     ket_before = r"\begin{bmatrix} " + r" \\ ".join(format_complex(ampl) for ampl in partial_state) + r" \end{bmatrix}"
 
+    # Determine gate label for LaTeX
     if op["gate"] == "CNOT":
         gate_label = f"{gate_matrices['CNOT']}^{{ctrl={op['control']}, target={op['target']}}}"
     else:
         gate_label = gate_matrices[op["gate"]]
 
-    latex = rf"|\psi\rangle = {op['gate']}|\psi\rangle = {gate_label} \cdot {ket_before}"
-    latex_steps.append(latex)
+    # Build braket notation
+    braket_after = statevector_to_braket(partial_state)
 
+    # Full LaTeX string
+    latex = rf"|\psi\rangle = {op['gate']}|\psi\rangle = {gate_label} \cdot {ket_before} = {braket_after}"
+    latex_steps.append(latex)
 
 # PURE NumPy Bloch sphere calculations:
 def compute_bloch_vector(statevector, qubit_index, n_qubits):
@@ -112,7 +128,7 @@ def compute_bloch_vector(statevector, qubit_index, n_qubits):
     axes = tuple(i for i in range(n_qubits) if i != qubit_index)
     rho = np.tensordot(reshaped, np.conj(reshaped), axes=(axes, axes))
 
-    # rho is now reduced density matrix for target qubit
+    # Reduced density matrix for target qubit
     bloch_x = 2 * np.real(rho[0, 1])
     bloch_y = 2 * np.imag(rho[1, 0])
     bloch_z = np.real(rho[0, 0] - rho[1, 1])
@@ -131,7 +147,7 @@ for qubit_index in range(n_qubits):
         "purity": purity
     }
 
-# Final full output
+# Final output to frontend
 output = {
     "steps": latex_steps,
     "bloch_spheres": bloch_spheres
