@@ -1,11 +1,9 @@
-# backend/quantum/state_evolution.py
-
 import sys
 import json
 import pennylane as qml
 import numpy as np
 
-# Read input from stdin
+# Read input from stdin (Node.js is passing circuit JSON here)
 input_data = sys.stdin.read()
 data = json.loads(input_data)
 circuit_description = data.get("circuit", [])
@@ -19,14 +17,10 @@ for op in circuit_description:
         max_wire = max(max_wire, op["qubit"])
 n_qubits = max_wire + 1
 
-# Initialize empty state: |00...0>
-initial_state = np.zeros(2**n_qubits, dtype=complex)
-initial_state[0] = 1.0
-
-# Use PennyLane device to simulate step-by-step evolution
+# Initialize PennyLane device
 dev = qml.device("default.qubit", wires=n_qubits)
 
-# Define gate matrix dictionary for LaTeX generation
+# Dictionary for LaTeX matrices
 gate_matrices = {
     "X": r"\begin{bmatrix} 0 & 1 \\ 1 & 0 \end{bmatrix}",
     "Y": r"\begin{bmatrix} 0 & -i \\ i & 0 \end{bmatrix}",
@@ -34,10 +28,10 @@ gate_matrices = {
     "H": r"\frac{1}{\sqrt{2}}\begin{bmatrix} 1 & 1 \\ 1 & -1 \end{bmatrix}",
     "S": r"\begin{bmatrix} 1 & 0 \\ 0 & i \end{bmatrix}",
     "T": r"\begin{bmatrix} 1 & 0 \\ 0 & e^{i \pi/4} \end{bmatrix}",
-    "CNOT": r"\text{CNOT}"
+    "CNOT": r"\begin{bmatrix} 1 & 0 & 0 & 0 \\ 0 & 1 & 0 & 0 \\ 0 & 0 & 0 & 1 \\ 0 & 0 & 1 & 0 \end{bmatrix}"
 }
 
-# Helper for formatting complex numbers for LaTeX
+# Helper for complex numbers → LaTeX formatting
 def format_complex(z):
     re = np.round(z.real, 2)
     im = np.round(z.imag, 2)
@@ -49,39 +43,57 @@ def format_complex(z):
         sign = '+' if im >= 0 else '-'
         return f"{re:.2f}{sign}{np.abs(im):.2f}i"
 
-# Function to apply circuit up to certain step
-def build_qnode(ops):
-    @qml.qnode(dev)
-    def circuit():
-        for op in ops:
-            if op["gate"] == "X":
-                qml.PauliX(op["qubit"])
-            elif op["gate"] == "Y":
-                qml.PauliY(op["qubit"])
-            elif op["gate"] == "Z":
-                qml.PauliZ(op["qubit"])
-            elif op["gate"] == "H":
-                qml.Hadamard(op["qubit"])
-            elif op["gate"] == "S":
-                qml.PhaseShift(np.pi/2, wires=op["qubit"])
-            elif op["gate"] == "T":
-                qml.PhaseShift(np.pi/4, wires=op["qubit"])
-            elif op["gate"] == "CNOT":
-                qml.CNOT(wires=[op["control"], op["target"]])
-        return qml.state()
-    return circuit
+# Build full circuit function
+@qml.qnode(dev)
+def full_circuit():
+    for op in circuit_description:
+        if op["gate"] == "X":
+            qml.PauliX(op["qubit"])
+        elif op["gate"] == "Y":
+            qml.PauliY(op["qubit"])
+        elif op["gate"] == "Z":
+            qml.PauliZ(op["qubit"])
+        elif op["gate"] == "H":
+            qml.Hadamard(op["qubit"])
+        elif op["gate"] == "S":
+            qml.PhaseShift(np.pi/2, wires=op["qubit"])
+        elif op["gate"] == "T":
+            qml.PhaseShift(np.pi/4, wires=op["qubit"])
+        elif op["gate"] == "CNOT":
+            qml.CNOT(wires=[op["control"], op["target"]])
+    return qml.state()
 
-# Perform step-by-step evolution
+# Run full circuit
+state = full_circuit()
+
+# Build LaTeX step-by-step evolution:
 latex_steps = []
 partial_ops = []
 
 for idx, op in enumerate(circuit_description):
     partial_ops.append(op)
-    circuit = build_qnode(partial_ops)
-    state = circuit()
 
-    # LaTeX for this step
-    ket_before = r"\begin{bmatrix} " + r" \\ ".join(format_complex(ampl) for ampl in state) + r" \end{bmatrix}"
+    @qml.qnode(dev)
+    def partial_circuit():
+        for p_op in partial_ops:
+            if p_op["gate"] == "X":
+                qml.PauliX(p_op["qubit"])
+            elif p_op["gate"] == "Y":
+                qml.PauliY(p_op["qubit"])
+            elif p_op["gate"] == "Z":
+                qml.PauliZ(p_op["qubit"])
+            elif p_op["gate"] == "H":
+                qml.Hadamard(p_op["qubit"])
+            elif p_op["gate"] == "S":
+                qml.PhaseShift(np.pi/2, wires=p_op["qubit"])
+            elif p_op["gate"] == "T":
+                qml.PhaseShift(np.pi/4, wires=p_op["qubit"])
+            elif p_op["gate"] == "CNOT":
+                qml.CNOT(wires=[p_op["control"], p_op["target"]])
+        return qml.state()
+
+    partial_state = partial_circuit()
+    ket_before = r"\begin{bmatrix} " + r" \\ ".join(format_complex(ampl) for ampl in partial_state) + r" \end{bmatrix}"
 
     if op["gate"] == "CNOT":
         gate_label = f"{gate_matrices['CNOT']}^{{ctrl={op['control']}, target={op['target']}}}"
@@ -91,9 +103,38 @@ for idx, op in enumerate(circuit_description):
     latex = rf"|\psi\rangle = {op['gate']}|\psi\rangle = {gate_label} \cdot {ket_before}"
     latex_steps.append(latex)
 
-# Output full LaTeX evolution
+
+# PURE NumPy Bloch sphere calculations:
+def compute_bloch_vector(statevector, qubit_index, n_qubits):
+    reshaped = np.reshape(statevector, [2]*n_qubits)
+
+    # Partial trace over all other qubits
+    axes = tuple(i for i in range(n_qubits) if i != qubit_index)
+    rho = np.tensordot(reshaped, np.conj(reshaped), axes=(axes, axes))
+
+    # rho is now reduced density matrix for target qubit
+    bloch_x = 2 * np.real(rho[0, 1])
+    bloch_y = 2 * np.imag(rho[1, 0])
+    bloch_z = np.real(rho[0, 0] - rho[1, 1])
+
+    purity = np.trace(rho @ rho).real
+
+    return [bloch_x, bloch_y, bloch_z], purity
+
+# Calculate Bloch vectors for all qubits
+bloch_spheres = {}
+
+for qubit_index in range(n_qubits):
+    bloch_vec, purity = compute_bloch_vector(state, qubit_index, n_qubits)
+    bloch_spheres[qubit_index] = {
+        "bloch_vector": bloch_vec,
+        "purity": purity
+    }
+
+# Final full output
 output = {
-    "steps": latex_steps
+    "steps": latex_steps,
+    "bloch_spheres": bloch_spheres
 }
 
 print(json.dumps(output))
