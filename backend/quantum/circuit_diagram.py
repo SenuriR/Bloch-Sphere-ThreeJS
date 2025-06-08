@@ -1,5 +1,3 @@
-# backend/quantum/circuit_diagram.py
-
 import sys
 import json
 from qiskit import QuantumCircuit
@@ -8,6 +6,10 @@ from qiskit import QuantumCircuit
 input_data = sys.stdin.read()
 data = json.loads(input_data)
 circuit_description = data.get("circuit", [])
+
+if not circuit_description:
+    print(json.dumps({"diagram": ""}))
+    sys.exit(0)
 
 # Determine number of qubits
 qubit_indices = set()
@@ -37,8 +39,11 @@ for op in circuit_description:
         qc.y(op["qubit"])
     elif gate == "Z":
         qc.z(op["qubit"])
+    elif gate == "S":
+        qc.s(op["qubit"])
+    elif gate == "T":
+        qc.t(op["qubit"])
     else:
-        # unknown gate
         pass
 
 # Generate ASCII diagram
