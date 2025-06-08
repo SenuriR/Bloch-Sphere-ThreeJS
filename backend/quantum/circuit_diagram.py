@@ -37,9 +37,12 @@ for op in circuit_description:
         qc.y(op["qubit"])
     elif gate == "Z":
         qc.z(op["qubit"])
+    elif gate == "S":
+        qc.s(op["qubit"])
+    elif gate == "T":
+        qc.t(op["qubit"])
     else:
-        # unknown gate
-        pass
+        pass  # unknown gate
 
 # Generate ASCII diagram
 ascii_diagram = qc.draw(output='text').single_string()

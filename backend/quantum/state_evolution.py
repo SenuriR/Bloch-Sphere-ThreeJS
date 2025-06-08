@@ -32,6 +32,8 @@ gate_matrices = {
     "Y": r"\begin{bmatrix} 0 & -i \\ i & 0 \end{bmatrix}",
     "Z": r"\begin{bmatrix} 1 & 0 \\ 0 & -1 \end{bmatrix}",
     "H": r"\frac{1}{\sqrt{2}}\begin{bmatrix} 1 & 1 \\ 1 & -1 \end{bmatrix}",
+    "S": r"\begin{bmatrix} 1 & 0 \\ 0 & i \end{bmatrix}",
+    "T": r"\begin{bmatrix} 1 & 0 \\ 0 & e^{i \pi/4} \end{bmatrix}",
     "CNOT": r"\text{CNOT}"
 }
 
@@ -60,6 +62,10 @@ def build_qnode(ops):
                 qml.PauliZ(op["qubit"])
             elif op["gate"] == "H":
                 qml.Hadamard(op["qubit"])
+            elif op["gate"] == "S":
+                qml.PhaseShift(np.pi/2, wires=op["qubit"])
+            elif op["gate"] == "T":
+                qml.PhaseShift(np.pi/4, wires=op["qubit"])
             elif op["gate"] == "CNOT":
                 qml.CNOT(wires=[op["control"], op["target"]])
         return qml.state()
